@@ -6,7 +6,7 @@
     "minimum": "13",
     "verified": "13.351"
   },
-  "version": "4.4.3.12",
+  "version": "4.4.3.12.1",
   "templateVersion": 2,
   "authors": [
     {
@@ -19,6 +19,10 @@
     },
     {
       "name": "Muhsigbokz"
+    },
+    {
+      "name" : "Gladistony",
+      "url": "https://github.com/Gladistony/"
     },
     {
       "name": "Silverfox3853",
@@ -179,6 +183,11 @@
       "lang": "es",
       "name": "Spanish",
       "path": "static/lang/es.json"
+    },
+    {
+      "lang": "pt-BR",
+      "name": "Português (Brasil)",
+      "path": "static/lang/pt-br.json"
     }
   ],
   "packFolders": [
