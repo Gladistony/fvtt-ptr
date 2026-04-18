@@ -6,7 +6,7 @@
     "minimum": "13",
     "verified": "13.351"
   },
-  "version": "4.4.3.12.1",
+  "version": "4.4.3.13",
   "templateVersion": 2,
   "authors": [
     {
@@ -187,7 +187,7 @@
     {
       "lang": "pt-BR",
       "name": "Português (Brasil)",
-      "path": "static/lang/pt-br.json"
+      "path": "static/lang/pt-BR.json"
     }
   ],
   "packFolders": [
