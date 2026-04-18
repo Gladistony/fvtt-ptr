@@ -3,6 +3,7 @@
 /* -------------------------------------------- */
 
 import { MigrationRunner } from "../../migration/runner/index.js";
+import { DEFAULT_CALENDAR, normalizeCalendar } from "../../apps/calendar/calendar.js";
 import { AutomationSettings } from "./automation.js";
 import { GenerationSettings } from "./generation.js";
 import { HomebrewSettings } from "./homebrew.js";
@@ -198,6 +199,15 @@ export function registerSettings() {
         config: false,
         default: null,
         type: String,
+    });
+
+    game.settings.register("ptu", "calendar", {
+        name: "World Calendar",
+        scope: "world",
+        config: false,
+        default: DEFAULT_CALENDAR,
+        type: Object,
+        onChange: (value) => Hooks.callAll("ptuCalendarChanged", normalizeCalendar(value)),
     });
 
     game.settings.register("ptu", "worldSystemVersion", {

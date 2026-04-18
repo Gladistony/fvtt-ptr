@@ -2,6 +2,76 @@ import { ActorConfig } from "./sheet/actor-config.js";
 
 class PTUActorSheet extends foundry.appv1.sheets.ActorSheet {
     /** @override */
+    activateListeners(html) {
+        super.activateListeners(html);
+
+        if (!this.isEditable) return;
+
+        html.find("[data-action='heal-single-injury']").on("click", this._onHealSingleInjury.bind(this));
+    }
+
+    _getDailyInjuryHealState() {
+        const currentDayKey = game.ptu.calendar.dayKey();
+        const storedState = this.actor.getFlag("ptu", "dailyInjuryHeal") ?? {};
+
+        if (storedState.dayKey !== currentDayKey) {
+            return {
+                dayKey: currentDayKey,
+                injuriesHealed: 0,
+            };
+        }
+
+        return {
+            dayKey: currentDayKey,
+            injuriesHealed: Number(storedState.injuriesHealed) || 0,
+        };
+    }
+
+    async _onHealSingleInjury(event) {
+        event.preventDefault();
+        return this._healDailyInjuries(1, { allowWhenFiveOrMoreInjuries: false, sourceLabel: "single" });
+    }
+
+    async _healDailyInjuries(requestedInjuries, { allowWhenFiveOrMoreInjuries = true, sourceLabel = "center" } = {}) {
+        const injuries = Number(this.actor.system.health.injuries) || 0;
+        const hp = Number(this.actor.system.health.value) || 0;
+        const state = this._getDailyInjuryHealState();
+        const remainingToday = Math.max(0, 3 - state.injuriesHealed);
+        const injuriesToHeal = allowWhenFiveOrMoreInjuries || injuries < 5 ? Math.min(requestedInjuries, remainingToday, injuries) : 0;
+
+        if (injuriesToHeal > 0) {
+            await this.actor.update({
+                "system.health.injuries": Math.max(0, injuries - injuriesToHeal),
+            });
+
+            const updatedState = {
+                dayKey: state.dayKey,
+                injuriesHealed: state.injuriesHealed + injuriesToHeal,
+            };
+            await this.actor.setFlag("ptu", "dailyInjuryHeal", updatedState);
+        }
+
+        const healedMaxHp = this.actor.system.health.max;
+        const healedTargetHp = Math.max(hp, healedMaxHp);
+        if (healedTargetHp !== hp) {
+            await this.actor.update({
+                "system.health.value": healedTargetHp,
+            });
+        }
+
+        if (injuriesToHeal === 0 && healedTargetHp === hp) {
+            return ui.notifications.info(`${this.actor.name} is already fully healed for today.`);
+        }
+
+        const todayState = this._getDailyInjuryHealState();
+        const healedInjuries = injuries - Number(this.actor.system.health.injuries);
+        const healedMessage = healedInjuries > 0 ? `and healed ${healedInjuries} ${healedInjuries === 1 ? "injury" : "injuries"}!` : "";
+        await ChatMessage.create({
+            speaker: { alias: this.actor.name },
+            content: `${this.actor.name} was healed to full health! (${hp} -> ${this.actor.system.health.value}) ${healedMessage} (${todayState.injuriesHealed}/3 injuries healed today via ${sourceLabel})`,
+        });
+    }
+
     _getHeaderButtons() {
         const buttons = super._getHeaderButtons();
         const sheetButton = buttons.find((button) => button.class === "configure-sheet");
@@ -9,6 +79,13 @@ class PTUActorSheet extends foundry.appv1.sheets.ActorSheet {
         if (!hasMultipleSheets && sheetButton) {
             buttons.splice(buttons.indexOf(sheetButton), 1);
         }
+
+        buttons.unshift({
+            label: "Calendar",
+            class: "open-calendar",
+            icon: "fas fa-calendar-alt",
+            onclick: () => new CONFIG.PTU.ui.calendar.sheetClass().render(true),
+        });
 
         if (this.isEditable) {
             const index = buttons.findIndex((b) => b.class === "close");
@@ -24,37 +101,7 @@ class PTUActorSheet extends foundry.appv1.sheets.ActorSheet {
                 label: "Heal",
                 class: "heal-character",
                 icon: "fas fa-heart",
-                onclick: async () => {
-                    const hp = this.actor.system.health.value;
-                    const maxHp = this.actor.system.health.max;
-                    const totalHp = this.actor.system.health.total;
-                    const injuries = this.actor.system.health.injuries;
-                    if(injuries === 0 && hp === maxHp) return ui.notifications.info(`${this.actor.name} is already at full health!`);
-                    if(injuries <= 3) {
-                        await this.actor.update({
-                            "system.health.value": totalHp,
-                            "system.health.injuries": 0
-                        });
-                        await ChatMessage.create({
-                            speaker: {alias: this.actor.name},
-                            content: `${this.actor.name} was healed to full health! (${hp} -> ${totalHp}) and healed ${injuries} injuries! (${injuries} -> 0)`
-                        })
-                    } 
-                    else {
-                        await this.actor.update({
-                            "system.health.injuries": Math.max(0, injuries - 3)
-                        })
-
-                        const newMax = this.actor.system.health.max;
-                        await this.actor.update({
-                            "system.health.value": newMax
-                        });
-                        await ChatMessage.create({
-                            speaker: {alias: this.actor.name},
-                            content: `${this.actor.name} was healed to full health! (${hp} -> ${newMax}) and healed 3 injuries! (${injuries} -> ${Math.max(0, injuries - 3)})`
-                        })
-                    }
-                }
+                onclick: () => this._healDailyInjuries(3, { allowWhenFiveOrMoreInjuries: true, sourceLabel: "center" }),
             })
         }
 
@@ -78,6 +125,13 @@ class PTUActorSheet extends foundry.appv1.sheets.ActorSheet {
 	async getData() {
 		const data = await super.getData();
 		data.config = CONFIG.PTU.data;
+        data.calendar = game.ptu.calendar.get();
+        data.calendarDisplay = game.ptu.calendar.format(data.calendar);
+        const dailyHealState = this._getDailyInjuryHealState();
+        data.healing = {
+            dailyHealState,
+            remainingToday: Math.max(0, 3 - dailyHealState.injuriesHealed),
+        };
         return data;
     }
 

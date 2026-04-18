@@ -14,6 +14,7 @@ import { sluggify } from '../../util/misc.js';
 import tmData from './data/tms.js';
 import { PTUPartySheet } from '../../module/apps/party/index.js';
 import { PTUPokemonTrainingSheet } from '../../module/apps/pokemon-training/index.js';
+import { PTUCalendarSheet } from '../../module/apps/calendar/index.js';
 import { ActiveEffectPTU } from '../../module/active-effect.js';
 import { statusEffects } from './effects.js';
 import { StatusEffects } from '../../module/canvas/status-effect.js';
@@ -178,6 +179,9 @@ const ui = {
 //   }
   party: {
     sheetClass: PTUPartySheet
+  },
+  calendar: {
+    sheetClass: PTUCalendarSheet
   },
   pokemonTraining: {
     sheetClass: PTUPokemonTrainingSheet

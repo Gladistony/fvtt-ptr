@@ -657,9 +657,13 @@
                             </div>
                             <div class="swsh-body" style="display: block;">
                                 <div class="d-flex w-100 mt-1 mb-1">
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-6 d-flex align-items-center" style="gap: 6px;">
                                         <input name="system.health.injuries" type="text"
                                             value="{{data.health.injuries}}" data-dtype="Number" />
+                                        <button type="button" class="heal-single-injury" data-action="heal-single-injury" title="Heal 1 injury">
+                                            <i class="fas fa-band-aid"></i>
+                                        </button>
+                                        <small>{{healing.remainingToday}}/3</small>
                                     </div>
                                     <div class="col-sm-6">
                                         <input type="text" name="system.health.total" value="{{data.health.total}}"
